@@ -1,0 +1,299 @@
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  Database,
+  DollarSign,
+  FileText,
+  Flame,
+  Gauge,
+  Lock,
+  PackageCheck,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Truck,
+  Users,
+  Wrench,
+  XCircle,
+} from 'lucide-react';
+import { isSupabaseConfigured } from '@/lib/supabaseClient';
+
+type Tone = 'red' | 'amber' | 'green' | 'blue' | 'purple' | 'slate';
+
+const appUsers = [
+  { id: 'u1', name: 'Tim Caffrey', role: 'BOSS Admin', access: 'All Clients', email: 'tim.caffrey@bossfacilityservices.com' },
+  { id: 'u2', name: 'April Parker', role: 'Client Facilities Leader', access: 'Security Finance', email: 'client@example.com' },
+  { id: 'u3', name: 'Projects Manager', role: 'BOSS Projects', access: 'Refresh / Remodel', email: 'projects@example.com' },
+  { id: 'u4', name: 'HVAC Desk', role: 'Trade Desk', access: 'HVAC/R', email: 'hvac@example.com' },
+];
+
+const clients = [
+  { id: 'security', name: 'Security Finance', locations: 752, openWO: 118, annualSpend: 3825000, risk: 'Medium', color: 'bg-blue-600' },
+  { id: 'fogo', name: 'Fogo de Chão', locations: 73, openWO: 22, annualSpend: 6175000, risk: 'High', color: 'bg-red-600' },
+  { id: 'mariner', name: 'Mariner Finance', locations: 479, openWO: 74, annualSpend: 2110000, risk: 'Medium', color: 'bg-emerald-600' },
+  { id: 'prime', name: 'Prime Communications', locations: 2100, openWO: 341, annualSpend: 12600000, risk: 'High', color: 'bg-purple-600' },
+];
+
+const locations = [
+  { id: 1, client: 'security', name: 'Columbia, SC #114', state: 'SC', spend: 84210, openWO: 8, risk: 88, fsm: 'April Parker', heat: 'Critical', issue: 'Repeat HVAC compressor failures' },
+  { id: 2, client: 'security', name: 'Mobile, AL #208', state: 'AL', spend: 61290, openWO: 5, risk: 71, fsm: 'April Parker', heat: 'Watch', issue: 'Aging RTU + plumbing calls' },
+  { id: 3, client: 'fogo', name: 'Portland, OR Refresh', state: 'OR', spend: 925000, openWO: 13, risk: 94, fsm: 'Michael Murillo', heat: 'Critical', issue: 'Refresh scope + long lead millwork' },
+  { id: 4, client: 'fogo', name: 'Dallas, TX #018', state: 'TX', spend: 241000, openWO: 7, risk: 69, fsm: 'David / Construction', heat: 'Watch', issue: 'Lighting retrofit + dining room repairs' },
+  { id: 5, client: 'mariner', name: 'Richmond, VA #332', state: 'VA', spend: 58220, openWO: 6, risk: 76, fsm: 'AVP Facilities', heat: 'Watch', issue: 'Door hardware + HVAC response' },
+  { id: 6, client: 'prime', name: 'Phoenix, AZ #904', state: 'AZ', spend: 134200, openWO: 12, risk: 91, fsm: 'Facilities Team', heat: 'Critical', issue: 'Vendor response gaps in desert heat' },
+  { id: 7, client: 'prime', name: 'Tulsa, OK #662', state: 'OK', spend: 71240, openWO: 9, risk: 82, fsm: 'Facilities Team', heat: 'Critical', issue: 'Repeat electrical and signage issues' },
+  { id: 8, client: 'security', name: 'Knoxville, TN #411', state: 'TN', spend: 31900, openWO: 2, risk: 38, fsm: 'April Parker', heat: 'Stable', issue: 'Normal reactive volume' },
+];
+
+const trades = [
+  { name: 'HVAC/R', spend: 1840000, wo: 424, variance: 18, risk: 'High' },
+  { name: 'Electrical', spend: 875000, wo: 233, variance: 9, risk: 'Medium' },
+  { name: 'Plumbing', spend: 642000, wo: 201, variance: 4, risk: 'Low' },
+  { name: 'Doors / Locks', spend: 418000, wo: 146, variance: 12, risk: 'Medium' },
+  { name: 'Lighting', spend: 391000, wo: 189, variance: 7, risk: 'Low' },
+  { name: 'Projects / Refresh', spend: 3140000, wo: 18, variance: 22, risk: 'High' },
+];
+
+const workOrders = [
+  { id: 'WO-10482', client: 'Fogo de Chão', location: 'Portland, OR Refresh', trade: 'Project', status: 'Proposal Needed', priority: 'P1', age: '2d', owner: 'Projects', vendor: 'Portland GC Partner', cost: 925000, next: 'Confirm owner vs contractor procured scopes' },
+  { id: 'WO-10473', client: 'Security Finance', location: 'Columbia, SC #114', trade: 'HVAC', status: 'Escalated', priority: 'P1', age: '4d', owner: 'HVAC Desk', vendor: 'Carolina Mechanical', cost: 12750, next: 'AI recommends replace, not repair' },
+  { id: 'WO-10455', client: 'Prime Communications', location: 'Phoenix, AZ #904', trade: 'HVAC', status: 'Vendor Late', priority: 'P1', age: '1d', owner: 'Dispatch', vendor: 'Desert Air', cost: 6800, next: 'Reassign if ETA not confirmed by 2 PM' },
+  { id: 'WO-10420', client: 'Mariner Finance', location: 'Richmond, VA #332', trade: 'Door', status: 'Scheduled', priority: 'P2', age: '3d', owner: 'Doors Desk', vendor: 'Atlantic Door', cost: 1450, next: 'Tech onsite tomorrow 9 AM' },
+  { id: 'WO-10398', client: 'Security Finance', location: 'Mobile, AL #208', trade: 'Plumbing', status: 'Pending Approval', priority: 'P2', age: '5d', owner: 'Account Manager', vendor: 'Gulf Plumbing', cost: 3900, next: 'Client approval needed' },
+];
+
+const assets = Array.from({ length: 50 }).map((_, i) => {
+  const age = [4, 7, 11, 14, 16, 19, 21][i % 7];
+  const repair = [1250, 2200, 4800, 8200, 11400, 16750, 6300][i % 7];
+  const condition = age >= 16 ? 'Poor' : age >= 12 ? 'Fair' : 'Good';
+  return {
+    id: `ASSET-${String(i + 1).padStart(3, '0')}`,
+    name: `${i % 3 === 0 ? 'RTU' : i % 3 === 1 ? 'Water Heater' : 'Electrical Panel'} ${i + 1}`,
+    make: ['Carrier', 'Trane', 'Lennox', 'Rheem', 'Siemens'][i % 5],
+    model: [`M-${2200 + i}`, `XR-${900 + i}`, `CX-${700 + i}`][i % 3],
+    age,
+    condition,
+    location: locations[i % locations.length].name,
+    recentService: ['Compressor repair', 'Leak investigation', 'Breaker replacement', 'Preventive maintenance', 'Blower motor replacement'][i % 5],
+    lastService: `${(i % 27) + 1} days ago`,
+    repairCost: repair,
+    recommendation: repair > 8000 && age >= 14 ? 'Replace' : 'Repair',
+  };
+});
+
+const vendors = [
+  { name: 'Carolina Mechanical', trade: 'HVAC', score: 71, response: '3.8h', completion: '84%', rework: '12%', cost: '+18%', status: 'Watch' },
+  { name: 'Portland GC Partner', trade: 'Projects', score: 88, response: '1.6h', completion: '93%', rework: '4%', cost: '+7%', status: 'Preferred' },
+  { name: 'Desert Air', trade: 'HVAC', score: 62, response: '5.2h', completion: '76%', rework: '16%', cost: '+21%', status: 'At Risk' },
+  { name: 'Atlantic Door', trade: 'Doors', score: 91, response: '1.1h', completion: '96%', rework: '3%', cost: '-2%', status: 'Preferred' },
+  { name: 'Gulf Plumbing', trade: 'Plumbing', score: 79, response: '2.4h', completion: '88%', rework: '8%', cost: '+6%', status: 'Good' },
+];
+
+const proposals = [
+  { id: 'PROP-882', client: 'Fogo de Chão', title: 'Portland Reimage / Refresh', amount: 925000, status: 'Drafting', blocker: 'Scope split + long lead items', margin: '3.5%' },
+  { id: 'PROP-761', client: 'Security Finance', title: 'Columbia RTU Replacement', amount: 18400, status: 'Client Approval', blocker: 'Repair exceeds AI threshold', margin: '1.5%' },
+  { id: 'PROP-730', client: 'Prime Communications', title: 'AZ / NV HVAC Backstop Program', amount: 214000, status: 'Internal Review', blocker: 'Coverage map validation', margin: '1.5%' },
+];
+
+const databaseTables = [
+  { table: 'users', purpose: 'Login, role, permissions, client access', status: 'MVP Required' },
+  { table: 'clients', purpose: 'Customer account records and portfolio settings', status: 'MVP Required' },
+  { table: 'locations', purpose: 'Store/branch/site master data', status: 'MVP Required' },
+  { table: 'work_orders', purpose: 'Reactive, PM, project, dispatch, status history', status: 'MVP Required' },
+  { table: 'assets', purpose: 'Equipment inventory, age, make, model, condition', status: 'MVP Required' },
+  { table: 'vendors', purpose: 'Vendor network, scorecards, SLA data', status: 'MVP Required' },
+  { table: 'proposals', purpose: 'Approval queue, estimates, scope, margin, blockers', status: 'MVP Required' },
+  { table: 'ai_insights', purpose: 'Generated summaries, risks, recommendations', status: 'MVP Required' },
+  { table: 'attachments', purpose: 'Photos, invoices, proposals, notes', status: 'Phase 1.5' },
+  { table: 'audit_log', purpose: 'Who changed what and when', status: 'Phase 1.5' },
+];
+
+function money(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
+function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: Tone }) {
+  const styles: Record<Tone, string> = {
+    red: 'bg-red-100 text-red-700 border-red-200',
+    amber: 'bg-amber-100 text-amber-700 border-amber-200',
+    green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    blue: 'bg-blue-100 text-blue-700 border-blue-200',
+    purple: 'bg-purple-100 text-purple-700 border-purple-200',
+    slate: 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${styles[tone]}`}>{children}</span>;
+}
+
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>{children}</div>;
+}
+
+function Metric({ icon: Icon, label, value, sub, tone = 'slate' }: { icon: any; label: string; value: string | number; sub: string; tone?: Tone }) {
+  const iconTone = tone === 'red' ? 'bg-red-50 text-red-600' : tone === 'green' ? 'bg-emerald-50 text-emerald-600' : tone === 'blue' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-700';
+  return (
+    <Card>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{sub}</p>
+        </div>
+        <div className={`rounded-2xl p-3 ${iconTone}`}><Icon className="h-5 w-5" /></div>
+      </div>
+    </Card>
+  );
+}
+
+export default function CommandCenterMVP() {
+  const [activeClient, setActiveClient] = useState('security');
+  const [activeTab, setActiveTab] = useState('executive');
+  const [selectedAsset, setSelectedAsset] = useState(assets[0]);
+  const [selectedVendor, setSelectedVendor] = useState(vendors[0]);
+  const [query, setQuery] = useState('');
+  const [loggedInUser, setLoggedInUser] = useState(appUsers[0]);
+
+  const client = clients.find(c => c.id === activeClient) || clients[0];
+  const clientLocations = locations.filter(l => l.client === activeClient);
+  const filteredAssets = assets.filter(a => a.location.toLowerCase().includes(query.toLowerCase()) || a.name.toLowerCase().includes(query.toLowerCase()) || a.id.toLowerCase().includes(query.toLowerCase()));
+
+  const totals = useMemo(() => {
+    const spend = clients.reduce((s, c) => s + c.annualSpend, 0);
+    const loc = clients.reduce((s, c) => s + c.locations, 0);
+    const wo = clients.reduce((s, c) => s + c.openWO, 0);
+    const replace = assets.filter(a => a.recommendation === 'Replace').length;
+    return { spend, loc, wo, replace };
+  }, []);
+
+  const tabs = [
+    { id: 'executive', label: 'Executive', icon: BarChart3 },
+    { id: 'workorders', label: 'Work Orders', icon: ClipboardList },
+    { id: 'assets', label: 'Assets', icon: PackageCheck },
+    { id: 'vendors', label: 'Vendors', icon: Truck },
+    { id: 'proposals', label: 'Proposals', icon: FileText },
+    { id: 'ai', label: 'AI Action Center', icon: Sparkles },
+    { id: 'saas', label: 'SaaS MVP', icon: ShieldCheck },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-950">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm"><Building2 className="h-6 w-6" /></div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight">CommandCenter Enterprise MVP</h1>
+              <p className="text-sm text-slate-500">Next.js + Supabase SaaS foundation for facilities command and visibility.</p>
+            </div>
+          </div>
+          <div className="hidden items-center gap-3 md:flex">
+            <select value={loggedInUser.id} onChange={e => setLoggedInUser(appUsers.find(u => u.id === e.target.value) || appUsers[0])} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none">
+              {appUsers.map(u => <option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}
+            </select>
+            <Badge tone={isSupabaseConfigured ? 'green' : 'amber'}><Database className="mr-1 h-3.5 w-3.5" /> {isSupabaseConfigured ? 'Supabase Connected' : 'Supabase Keys Needed'}</Badge>
+            <Badge tone="blue"><Sparkles className="mr-1 h-3.5 w-3.5" /> AI Ready</Badge>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-5 py-6">
+        <section className="mb-6 grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
+          <Card className="overflow-hidden bg-slate-950 text-white">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-blue-300">BOSS Facility Services</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">National Facilities Command Center</h2>
+                <p className="mt-3 max-w-2xl text-slate-300">Reactive work, PMs, refreshes, asset intelligence, vendor control, budget forecasting, and AI-backed executive decisions.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl bg-white/10 p-4"><p className="text-slate-300">Portfolio</p><p className="text-2xl font-black">{totals.loc.toLocaleString()}</p></div>
+                <div className="rounded-2xl bg-white/10 p-4"><p className="text-slate-300">Open WOs</p><p className="text-2xl font-black">{totals.wo}</p></div>
+                <div className="rounded-2xl bg-white/10 p-4"><p className="text-slate-300">Annual Spend</p><p className="text-2xl font-black">{money(totals.spend)}</p></div>
+                <div className="rounded-2xl bg-white/10 p-4"><p className="text-slate-300">AI Replace Flags</p><p className="text-2xl font-black">{totals.replace}</p></div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <p className="text-sm font-bold text-slate-500">Active Client</p>
+            <div className="mt-3 space-y-2">
+              {clients.map(c => (
+                <button key={c.id} onClick={() => setActiveClient(c.id)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left transition ${activeClient === c.id ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`h-3 w-3 rounded-full ${c.color}`} />
+                    <div><p className="font-bold">{c.name}</p><p className={`text-xs ${activeClient === c.id ? 'text-slate-300' : 'text-slate-500'}`}>{c.locations.toLocaleString()} locations</p></div>
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </Card>
+        </section>
+
+        <nav className="mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          {tabs.map(t => {
+            const Icon = t.icon;
+            return <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === t.id ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><Icon className="h-4 w-4" /> {t.label}</button>;
+          })}
+        </nav>
+
+        {activeTab === 'executive' && (
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Metric icon={Building2} label="Client Locations" value={client.locations.toLocaleString()} sub={`${client.name} active portfolio`} tone="blue" />
+              <Metric icon={ClipboardList} label="Open Work Orders" value={client.openWO} sub="Reactive + project queue" tone="red" />
+              <Metric icon={DollarSign} label="Annualized Spend" value={money(client.annualSpend)} sub="Projected facilities volume" tone="green" />
+              <Metric icon={Gauge} label="Portfolio Risk" value={client.risk} sub="AI blended risk score" tone={client.risk === 'High' ? 'red' : 'blue'} />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+              <Card>
+                <div className="mb-4 flex items-center justify-between"><div><h3 className="text-lg font-black">Portfolio Heat Map</h3><p className="text-sm text-slate-500">Critical sites need management action.</p></div><Badge tone="red"><Flame className="mr-1 h-3.5 w-3.5" /> Heat Scored</Badge></div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {clientLocations.map(l => <div key={l.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black">{l.name}</p><p className="mt-1 text-sm text-slate-500">{l.issue}</p></div><Badge tone={l.heat === 'Critical' ? 'red' : l.heat === 'Watch' ? 'amber' : 'green'}>{l.heat}</Badge></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full ${l.risk > 85 ? 'bg-red-500' : l.risk > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${l.risk}%` }} /></div><div className="mt-3 flex justify-between text-sm text-slate-600"><span>{money(l.spend)} spend</span><span>{l.openWO} open WOs</span></div></div>)}
+                </div>
+              </Card>
+              <Card>
+                <h3 className="text-lg font-black">AI Executive Summary</h3>
+                <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-slate-700"><p className="font-bold text-slate-950">Recommended executive readout for {client.name}:</p><p className="mt-2">Portfolio is controllable, but risk is concentrated in high-cost HVAC, vendor-late P1s, and repeat asset failures. The strongest savings lever is moving from repeated repairs to planned replacement on assets exceeding age and repair thresholds.</p></div>
+                <div className="mt-4 space-y-3"><div className="flex items-center justify-between rounded-xl border border-slate-200 p-3"><span className="font-bold">Projected Savings Opportunity</span><span>{money(286000)}</span></div><div className="flex items-center justify-between rounded-xl border border-slate-200 p-3"><span className="font-bold">Budget Overrun Risk</span><Badge tone="amber">Moderate</Badge></div><div className="flex items-center justify-between rounded-xl border border-slate-200 p-3"><span className="font-bold">Executive Action Needed</span><Badge tone="red">Yes</Badge></div></div>
+              </Card>
+            </div>
+            <Card><h3 className="text-lg font-black">Budget Forecasting by Trade</h3><div className="mt-4 grid gap-3 lg:grid-cols-3">{trades.map(t => <div key={t.name} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-center justify-between"><p className="font-black">{t.name}</p><Badge tone={t.risk === 'High' ? 'red' : t.risk === 'Medium' ? 'amber' : 'green'}>{t.risk}</Badge></div><p className="mt-3 text-2xl font-black">{money(t.spend)}</p><p className="text-sm text-slate-500">{t.wo} work orders · {t.variance}% forecast variance</p></div>)}</div></Card>
+          </div>
+        )}
+
+        {activeTab === 'workorders' && (
+          <Card><div className="mb-4 flex items-center justify-between"><div><h3 className="text-lg font-black">Work Order Dispatch Board</h3><p className="text-sm text-slate-500">Actionable queue with owner, vendor, next step, and escalation logic.</p></div><Badge tone="blue"><Wrench className="mr-1 h-3.5 w-3.5" /> FacilIT Routing Ready</Badge></div><div className="overflow-x-auto rounded-2xl border border-slate-200"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-3">WO</th><th className="p-3">Location</th><th className="p-3">Trade</th><th className="p-3">Status</th><th className="p-3">Owner</th><th className="p-3">Cost</th><th className="p-3">Next Action</th></tr></thead><tbody className="divide-y divide-slate-200 bg-white">{workOrders.map(w => <tr key={w.id} className="hover:bg-slate-50"><td className="p-3 font-black">{w.id}<p className="text-xs font-normal text-slate-500">{w.priority} · {w.age}</p></td><td className="p-3">{w.location}<p className="text-xs text-slate-500">{w.client}</p></td><td className="p-3">{w.trade}</td><td className="p-3"><Badge tone={w.status.includes('Escalated') || w.status.includes('Late') ? 'red' : w.status.includes('Approval') ? 'amber' : 'blue'}>{w.status}</Badge></td><td className="p-3">{w.owner}<p className="text-xs text-slate-500">{w.vendor}</p></td><td className="p-3 font-bold">{money(w.cost)}</td><td className="p-3 text-slate-600">{w.next}</td></tr>)}</tbody></table></div></Card>
+        )}
+
+        {activeTab === 'assets' && (
+          <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]"><Card><div className="flex items-center justify-between"><div><h3 className="text-lg font-black">Asset List</h3><p className="text-sm text-slate-500">50 clickable assets with service history and AI repair/replace.</p></div><Badge tone="purple">50 Assets</Badge></div><div className="relative mt-4"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search assets, locations, IDs..." className="w-full rounded-2xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-slate-950" /></div><div className="mt-4 max-h-[620px] space-y-2 overflow-auto pr-1">{filteredAssets.map(a => <button key={a.id} onClick={() => setSelectedAsset(a)} className={`w-full rounded-2xl border p-3 text-left transition ${selectedAsset.id === a.id ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}><div className="flex items-center justify-between"><p className="font-black">{a.name}</p><Badge tone={a.recommendation === 'Replace' ? 'red' : 'green'}>{a.recommendation}</Badge></div><p className={`mt-1 text-xs ${selectedAsset.id === a.id ? 'text-slate-300' : 'text-slate-500'}`}>{a.id} · {a.location}</p></button>)}</div></Card><Card><div className="flex items-start justify-between"><div><p className="text-sm font-bold text-slate-500">Selected Asset</p><h3 className="mt-1 text-2xl font-black">{selectedAsset.name}</h3><p className="text-slate-500">{selectedAsset.id} · {selectedAsset.location}</p></div><Badge tone={selectedAsset.recommendation === 'Replace' ? 'red' : 'green'}>{selectedAsset.recommendation}</Badge></div><div className="mt-6 grid gap-3 md:grid-cols-2"><div className="rounded-2xl border border-slate-200 p-4"><p className="text-sm text-slate-500">Make / Model</p><p className="mt-1 font-black">{selectedAsset.make} {selectedAsset.model}</p></div><div className="rounded-2xl border border-slate-200 p-4"><p className="text-sm text-slate-500">Age / Condition</p><p className="mt-1 font-black">{selectedAsset.age} yrs · {selectedAsset.condition}</p></div><div className="rounded-2xl border border-slate-200 p-4"><p className="text-sm text-slate-500">Recent Service</p><p className="mt-1 font-black">{selectedAsset.recentService}</p></div><div className="rounded-2xl border border-slate-200 p-4"><p className="text-sm text-slate-500">Current Repair Quote</p><p className="mt-1 font-black">{money(selectedAsset.repairCost)}</p></div></div><div className={`mt-6 rounded-2xl p-5 ${selectedAsset.recommendation === 'Replace' ? 'bg-red-50' : 'bg-emerald-50'}`}><div className="flex items-center gap-2 font-black"><Sparkles className="h-5 w-5" /> AI Repair vs Replace Logic</div><p className="mt-2 text-sm leading-6 text-slate-700">Rule: any machine 14+ years old with a repair over $8,000 is flagged for replacement review. This asset is {selectedAsset.age} years old with a repair quote of {money(selectedAsset.repairCost)}, so the system recommends <strong>{selectedAsset.recommendation}</strong>.</p></div></Card></div>
+        )}
+
+        {activeTab === 'vendors' && (
+          <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]"><Card><h3 className="text-lg font-black">Vendor Network</h3><p className="text-sm text-slate-500">Clickable scorecards by trade, SLA, cost, and rework.</p><div className="mt-4 space-y-3">{vendors.map(v => <button key={v.name} onClick={() => setSelectedVendor(v)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedVendor.name === v.name ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}><div className="flex justify-between"><p className="font-black">{v.name}</p><span className="font-black">{v.score}</span></div><p className={`mt-1 text-sm ${selectedVendor.name === v.name ? 'text-slate-300' : 'text-slate-500'}`}>{v.trade} · {v.status}</p></button>)}</div></Card><Card><div className="flex items-start justify-between"><div><p className="text-sm font-bold text-slate-500">Vendor Scorecard</p><h3 className="mt-1 text-2xl font-black">{selectedVendor.name}</h3><p className="text-slate-500">Primary trade: {selectedVendor.trade}</p></div><Badge tone={selectedVendor.status === 'At Risk' ? 'red' : selectedVendor.status === 'Watch' ? 'amber' : 'green'}>{selectedVendor.status}</Badge></div><div className="mt-6 grid gap-3 md:grid-cols-4"><Metric icon={Clock} label="Response" value={selectedVendor.response} sub="Avg P1/P2" /><Metric icon={CheckCircle2} label="Completion" value={selectedVendor.completion} sub="On-time close" tone="green" /><Metric icon={XCircle} label="Rework" value={selectedVendor.rework} sub="30-day return" tone="red" /><Metric icon={TrendingUp} label="Cost Variance" value={selectedVendor.cost} sub="vs benchmark" tone="blue" /></div><div className="mt-6 rounded-2xl bg-slate-100 p-5"><p className="font-black">Recommended Action</p><p className="mt-2 text-sm leading-6 text-slate-600">Use this vendor for normal volume only if score remains above 75. If score falls below 70, trigger alternate vendor sourcing and account manager review.</p></div></Card></div>
+        )}
+
+        {activeTab === 'proposals' && (
+          <Card><h3 className="text-lg font-black">Proposal Approval Queue</h3><p className="text-sm text-slate-500">Proposals are not auto-cut. They stay intact with scope, blockers, margin, and next action visibility.</p><div className="mt-4 grid gap-4 lg:grid-cols-3">{proposals.map(p => <div key={p.id} className="rounded-2xl border border-slate-200 p-5"><div className="flex items-center justify-between"><p className="font-black">{p.id}</p><Badge tone={p.status.includes('Approval') ? 'amber' : 'blue'}>{p.status}</Badge></div><h4 className="mt-3 text-xl font-black">{p.title}</h4><p className="mt-1 text-sm text-slate-500">{p.client}</p><p className="mt-4 text-3xl font-black">{money(p.amount)}</p><div className="mt-4 rounded-xl bg-slate-100 p-3 text-sm text-slate-600"><strong>Blocker:</strong> {p.blocker}</div><div className="mt-3 flex justify-between text-sm"><span>Margin</span><strong>{p.margin}</strong></div></div>)}</div></Card>
+        )}
+
+        {activeTab === 'ai' && (
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]"><Card><div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-purple-600" /><h3 className="text-lg font-black">Executive Action Center</h3></div><div className="mt-4 space-y-3">{['Approve Columbia RTU replacement; repair economics are upside down.', 'Escalate Desert Air vendor SLA before Phoenix heat issue becomes client-visible.', 'Lock Fogo Portland scope split: GC package vs trade packages.', 'Create budget forecast review for HVAC spend variance over 15%.', 'Schedule monthly executive review with client facilities owner.'].map((x, idx) => <div key={x} className="flex gap-3 rounded-2xl border border-slate-200 p-4"><div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-black text-white">{idx + 1}</div><div><p className="font-bold">{x}</p><p className="mt-1 text-sm text-slate-500">Owner, deadline, and calendar hold required before closing the loop.</p></div></div>)}</div></Card><Card><h3 className="text-lg font-black">No-Soft-Exit Next Step Engine</h3><div className="mt-4 rounded-2xl bg-slate-950 p-5 text-white"><p className="font-black">Call Close Template</p><p className="mt-3 text-sm leading-6 text-slate-300">“Sounds like the main issue is vendor response and repeat asset failures. That matters because it drives cost, downtime, and team distraction. I’ll send the site-level risk report; you’ll review replacement approvals. Can we have that by Friday? Let’s lock 15 minutes Tuesday to finalize next steps.”</p></div><div className="mt-4 grid gap-3 md:grid-cols-2">{['Recap', 'Business Reason', 'Next Action', 'Owner', 'Deadline', 'Calendar Hold'].map(x => <div key={x} className="flex items-center gap-2 rounded-2xl border border-slate-200 p-4"><CheckCircle2 className="h-5 w-5 text-emerald-600" /><span className="font-bold">{x}</span></div>)}</div></Card></div>
+        )}
+
+        {activeTab === 'saas' && (
+          <div className="space-y-6"><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Metric icon={Lock} label="Authentication" value="Ready" sub="Role-based user access" tone="green" /><Metric icon={Building2} label="Multi-Tenant" value="Ready" sub="Separate client portfolios" tone="blue" /><Metric icon={Sparkles} label="AI Backend" value="Planned" sub="Summaries + risk logic" tone="blue" /><Metric icon={Database} label="Database" value="Supabase" sub="Postgres + secure storage" tone="green" /></div><div className="grid gap-6 lg:grid-cols-[1fr_1fr]"><Card><h3 className="text-lg font-black">MVP Login & Permissions</h3><p className="mt-1 text-sm text-slate-500">Separate access for BOSS admins, client leaders, trade desks, project managers, and executives.</p><div className="mt-4 space-y-3">{appUsers.map(u => <div key={u.id} className={`rounded-2xl border p-4 ${loggedInUser.id === u.id ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white'}`}><div className="flex items-center justify-between gap-3"><div><p className="font-black">{u.name}</p><p className={`text-sm ${loggedInUser.id === u.id ? 'text-slate-300' : 'text-slate-500'}`}>{u.email}</p></div><Badge tone={loggedInUser.id === u.id ? 'blue' : 'slate'}>{u.role}</Badge></div><p className={`mt-2 text-sm ${loggedInUser.id === u.id ? 'text-slate-300' : 'text-slate-500'}`}>Access: {u.access}</p></div>)}</div></Card><Card><h3 className="text-lg font-black">Production Database Structure</h3><p className="mt-1 text-sm text-slate-500">Core Supabase/Postgres schema to make the app real.</p><div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-3">Table</th><th className="p-3">Purpose</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-200 bg-white">{databaseTables.map(row => <tr key={row.table}><td className="p-3 font-black">{row.table}</td><td className="p-3 text-slate-600">{row.purpose}</td><td className="p-3"><Badge tone={row.status.includes('Required') ? 'red' : 'blue'}>{row.status}</Badge></td></tr>)}</tbody></table></div></Card></div><Card><h3 className="text-lg font-black">Option 2 Build Plan: Real SaaS MVP</h3><div className="mt-5 grid gap-4 lg:grid-cols-4">{[['Phase 1','Core Platform','Vercel hosting, Supabase database, login, roles, client accounts, protected dashboards.'],['Phase 2','Operations Engine','Work order intake, dispatch status, proposal queue, asset inventory, vendor scorecards.'],['Phase 3','AI Layer','Executive summaries, heat map logic, repair/replace recommendations, budget forecasting.'],['Phase 4','Client Pilot','Pilot with 1–3 accounts, import live data manually first, then add integrations later.']].map(p => <div key={p[0]} className="rounded-2xl border border-slate-200 p-5"><p className="text-sm font-bold text-blue-600">{p[0]}</p><h4 className="mt-2 text-xl font-black">{p[1]}</h4><p className="mt-2 text-sm leading-6 text-slate-600">{p[2]}</p></div>)}</div></Card></div>
+        )}
+      </main>
+    </div>
+  );
+}
