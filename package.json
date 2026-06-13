@@ -1,28 +1,11 @@
 {
-  "name": "commandcenter-next-mvp",
-  "version": "1.0.0",
+  "name": "commandcenter-v2-14-stable-root-static",
+  "version": "2.14.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "build": "mkdir -p dist && cp -R index.html styles.css app.js *.png *.jpg *.jpeg *.webp *.svg env.js dist/ 2>/dev/null || true"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "latest",
-    "framer-motion": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "recharts": "latest"
-  },
-  "devDependencies": {
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
-    "tailwindcss": "3.4.17"
-    "typescript": "latest"
+  "engines": {
+    "node": "20.x"
   }
 }

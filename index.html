@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CC CommandCenter — Run Your Portfolio with AI</title>
+<link rel="icon" type="image/png" href="./cc-commandcenter-app-icon.png">
+
+<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+<div id="ccLoader" class="ccLoader" aria-label="CommandCenter loading screen">
+  <div class="ccLoaderCard">
+    <img class="ccLoaderLogo" src="./cc-commandcenter-loading.png" alt="CC CommandCenter loading logo">
+    <div class="ccLoaderText">Initializing Portfolio Intelligence...</div>
+    <div class="ccLoaderBar"><span></span></div>
+    <div class="ccLoaderPct">72%</div>
+  </div>
+</div>
+
+<div id="authGate" class="authGate">
+  <div class="authCard">
+    <img class="authLogo" src="./cc-commandcenter-stacked.png" alt="CC CommandCenter">
+    <div class="kicker">Secure Login</div>
+    <h1>CommandCenter</h1>
+    <p>Sign in with your Supabase user account. Your role controls what you can see and do.</p>
+    <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+    <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <button class="btn dark authBtn" onclick="appSignIn()">Login</button>
+    <div id="authMessage" class="authMessage"></div>
+    <div class="authHint">Roles supported: Admin, Executive, Facility Manager, Vendor, Technician, Client.</div>
+  </div>
+</div>
+<div class="app" id="appShell">
+<aside class="side">
+  <div class="brand"><div class="brandMark approvedBrand"><img class="brandHeroLogo" src="./cc-commandcenter-stacked.png" alt="CC CommandCenter — Run your portfolio with AI"></div><p>The Facilities Operating System for work orders, assets, vendors, projects, approvals, spend, and executive control.</p><div class="brandTag">Visibility. Accountability. Control.</div></div>
+  <div class="nav" id="nav"></div>
+</aside>
+<main class="main">
+  <div class="top">
+    <div class="title"><div class="kicker">CC CommandCenter V2.16.21 Supabase Env Login Master</div><h2 id="pageTitle">Mission Control</h2><p id="pageSub">Map, pins, location drawer, asset drilldown, and work order visibility across the portfolio.</p></div>
+    <div class="controls">
+      <select id="clientSelect" onchange="setClient(this.value)"></select><select id="loginUserSelect" onchange="setLoginUser(this.value)"></select>
+      <input id="search" placeholder="Global search..." oninput="render()"/>
+      <button class="btn dark" data-permission="create_work_order" onclick="openWOForm()">+ Work Order</button>
+      <button class="btn" data-permission="create_proposal" onclick="openProposalForm()">+ Proposal</button>
+      <button class="btn" data-permission="export_data" onclick="exportData()">Export JSON</button><button class="btn" id="logoutBtn" onclick="appSignOut()">Logout</button><span id="roleBadge" class="deployBadge">Role loading</span>
+    </div>
+  </div>
+  <section class="metrics" id="metrics"></section>
+  <section id="warroom" class="page active"></section>
+  <section id="amdashboard" class="page"></section>
+  <section id="dashboard" class="page"></section>
+  <section id="workorders" class="page"></section>
+  <section id="pm" class="page"></section>
+  <section id="locations" class="page"></section>
+  <section id="proposals" class="page"></section>
+  <section id="assets" class="page"></section>
+  <section id="vendors" class="page"></section>
+  <section id="projects" class="page"></section>
+  <section id="reports" class="page"></section>
+  <section id="users" class="page"></section>
+
+  <section id="dispatch" class="page"></section>
+  <section id="escalations" class="page"></section>
+  <section id="sla" class="page"></section>
+  <section id="heatmap" class="page"></section>
+  <section id="approvals" class="page"></section>
+  <section id="copilot" class="page"></section>
+  <section id="executive" class="page"></section>
+  <section id="cfo" class="page"></section>
+  <section id="tenant" class="page"></section>
+  <section id="documents" class="page"></section>
+  <section id="settings" class="page"></section>
+</main>
+</div>
+<div class="toast" id="toast"></div><div class="modal" id="modal"><div class="box"><button class="close" onclick="closeModal()">Close</button><div id="modalBody"></div></div></div><div class="drawerOverlay" id="siteDrawer"><div class="drawerPanel"><div id="siteDrawerBody"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./env.js"></script>
+<script src="./app.js"></script>
+<script>window.addEventListener("load",()=>setTimeout(()=>document.body.classList.add("ccLoaded"),650)); setTimeout(()=>document.body.classList.add("ccLoaded"),2200);</script>
+</body>
+</html>
