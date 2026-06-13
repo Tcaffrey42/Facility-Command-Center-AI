@@ -1,11 +1,16 @@
 {
-  "name": "commandcenter-v2-14-stable-root-static",
-  "version": "2.14.0",
+  "name": "commandcenter-v2-13-5-vercel-no-scripts-folder",
+  "version": "2.13.5",
   "private": true,
   "scripts": {
-    "build": "mkdir -p dist && cp -R index.html styles.css app.js *.png *.jpg *.jpeg *.webp *.svg env.js dist/ 2>/dev/null || true"
+    "build": "mkdir -p dist && cp -R index.html src dist/",
+    "start": "npx serve dist",
+    "preview": "npx serve dist"
   },
   "engines": {
     "node": "20.x"
+  },
+  "devDependencies": {
+    "serve": "latest"
   }
 }

@@ -3,50 +3,28 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CC CommandCenter — Run Your Portfolio with AI</title>
-<link rel="icon" type="image/png" href="./cc-commandcenter-app-icon.png">
+<title>CommandCenter Enterprise V2.13 Staging Prep</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2309090b'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='white' stroke-width='6'/%3E%3Cpath d='M32 13v10M32 41v10M13 32h10M41 32h10' stroke='white' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
 
-<link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQfQhd8lG/9dOfH7WwkxqUH7m3BzLfk=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
-<div id="ccLoader" class="ccLoader" aria-label="CommandCenter loading screen">
-  <div class="ccLoaderCard">
-    <img class="ccLoaderLogo" src="./cc-commandcenter-loading.png" alt="CC CommandCenter loading logo">
-    <div class="ccLoaderText">Initializing Portfolio Intelligence...</div>
-    <div class="ccLoaderBar"><span></span></div>
-    <div class="ccLoaderPct">72%</div>
-  </div>
-</div>
-
-<div id="authGate" class="authGate">
-  <div class="authCard">
-    <img class="authLogo" src="./cc-commandcenter-stacked.png" alt="CC CommandCenter">
-    <div class="kicker">Secure Login</div>
-    <h1>CommandCenter</h1>
-    <p>Sign in with your Supabase user account. Your role controls what you can see and do.</p>
-    <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
-    <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
-    <button class="btn dark authBtn" onclick="appSignIn()">Login</button>
-    <button class="btn authBtn" onclick="startLocalDemoSession('admin@commandcenter.local');init()" style="margin-top:8px">Skip Login — Demo Mode</button>
-    <div id="authMessage" class="authMessage"></div>
-    <div class="authHint">Roles supported: Admin, Executive, Facility Manager, Vendor, Technician, Client.</div>
-  </div>
-</div>
-<div class="app" id="appShell">
+<div class="app">
 <aside class="side">
-  <div class="brand"><div class="brandMark approvedBrand"><img class="brandHeroLogo" src="./cc-commandcenter-stacked.png" alt="CC CommandCenter — Run your portfolio with AI"></div><p>The Facilities Operating System for work orders, assets, vendors, projects, approvals, spend, and executive control.</p><div class="brandTag">Visibility. Accountability. Control.</div></div>
+  <div class="brand"><div class="brandMark"><div class="brandLogo">⌘</div><div><div class="brandWord">COMMANDCENTER</div><h1>CommandCenter</h1></div></div><p>The Facilities Operating System for work orders, assets, vendors, projects, approvals, spend, and executive control.</p><div class="brandTag">Visibility. Accountability. Control.</div></div>
   <div class="nav" id="nav"></div>
 </aside>
 <main class="main">
   <div class="top">
-    <div class="title"><div class="kicker">CC CommandCenter V2.16.21 Supabase Env Login Master</div><h2 id="pageTitle">Mission Control</h2><p id="pageSub">Map, pins, location drawer, asset drilldown, and work order visibility across the portfolio.</p></div>
+    <div class="title"><div class="kicker">CommandCenter Enterprise V2.13</div><h2 id="pageTitle">Mission Control</h2><p id="pageSub">Visibility, accountability, and control across every location, asset, vendor, and dollar.</p></div>
     <div class="controls">
       <select id="clientSelect" onchange="setClient(this.value)"></select><select id="loginUserSelect" onchange="setLoginUser(this.value)"></select>
       <input id="search" placeholder="Global search..." oninput="render()"/>
-      <button class="btn dark" data-permission="create_work_order" onclick="openWOForm()">+ Work Order</button>
-      <button class="btn" data-permission="create_proposal" onclick="openProposalForm()">+ Proposal</button>
-      <button class="btn" data-permission="export_data" onclick="exportData()">Export JSON</button><button class="btn" id="logoutBtn" onclick="appSignOut()">Logout</button><span id="roleBadge" class="deployBadge">Role loading</span>
+      <button class="btn dark" onclick="openWOForm()">+ Work Order</button>
+      <button class="btn" onclick="openProposalForm()">+ Proposal</button>
+      <button class="btn" onclick="exportData()">Export JSON</button><span class="deployBadge">Vercel staging-ready</span>
     </div>
   </div>
   <section class="metrics" id="metrics"></section>
@@ -54,7 +32,6 @@
   <section id="amdashboard" class="page"></section>
   <section id="dashboard" class="page"></section>
   <section id="workorders" class="page"></section>
-  <section id="pm" class="page"></section>
   <section id="locations" class="page"></section>
   <section id="proposals" class="page"></section>
   <section id="assets" class="page"></section>
@@ -78,9 +55,7 @@
 </div>
 <div class="toast" id="toast"></div><div class="modal" id="modal"><div class="box"><button class="close" onclick="closeModal()">Close</button><div id="modalBody"></div></div></div><div class="drawerOverlay" id="siteDrawer"><div class="drawerPanel"><div id="siteDrawerBody"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="./env.js"></script>
-<script src="./app.js"></script>
-<script>window.addEventListener("load",()=>setTimeout(()=>document.body.classList.add("ccLoaded"),650)); setTimeout(()=>document.body.classList.add("ccLoaded"),2200);</script>
+<script src="/src/env.js"></script>
+<script src="/src/app.js"></script>
 </body>
 </html>
